@@ -2,6 +2,11 @@
 install.packages("readxl")
 install.packages("here")
 
+install.packages("ggplot2")
+install.packages("cluster")
+
+library(cluster) 
+library(ggplot2)
 
 # Caricare il pacchetto
 library(readxl)
@@ -48,7 +53,7 @@ head(data_missing_customer)
 
 # Calcolare il totale netto per ogni cliente 
 
-features <- dataset %>% 
+dataset_clean <- dataset %>% 
   
   filter(!is.na(CustomerID)) %>% # filtro le righe in cui CustomerID è nullo o undefined
   
@@ -64,37 +69,31 @@ features <- dataset %>%
     
     Recency = as.numeric(difftime(Sys.Date(), max(InvoiceDate), units = "days")), 
     
-    Monetary = sum(Quantity * Price) 
-    
-  ) %>% 
+  )
+
+#%>% 
   
- filter(NetQuantity > 0)  # Opzionale: filtrare clienti con acquisti netti positivi 
+# filter(NetQuantity > 0)  # Opzionale: filtrare clienti con acquisti netti positivi 
 
 head(dataset)
 summary(dataset)
-summary(features)
-head(features)
+summary(dataset_clean)
+head(dataset_clean)
 
 # normalizzazione
-data_normalized <- scale(features[, c("Recency", "Frequency", "Monetary")]) 
+data_normalized <- scale(dataset_clean[, c("Recency", "Frequency", "TotalSpent", "NetQuantity")]) 
 
 head(data_normalized)
 
 ## applicazione del k-means
 
 ## elbow method
-# 
-install.packages("factoextra")
-install.packages("ggplot2")
-
-library(factoextra)
-library(ggplot2)
 
 set.seed(123)  # Per rendere i risultati riproducibili
 
 # Esegui k-means per un range di cluster (ad esempio da 1 a 10 cluster)
 wcss <- function(k) {
-  kmeans(data_normalized, k, nstart = 25)$tot.withinss
+  kmeans(dataset_clean, k, nstart = 25)$tot.withinss
 }
 
 # Calcola WCSS per ciascun valore di k
@@ -110,16 +109,14 @@ plot(k.values, wcss_values, type="b", pch = 19, frame = FALSE,
 
 # Metodo del Silhouette Score 
 
-install.packages("cluster")
 
-library(cluster) 
 
 set.seed(123)  # Per rendere i risultati riproducibili
 
 # Funzione per calcolare il Silhouette Score per ogni numero di cluster
 calculate_silhouette <- function(k) {
-  km.res <- kmeans(data_normalized, centers = k, nstart = 25)
-  ss <- silhouette(km.res$cluster, dist(data_normalized))
+  km.res <- kmeans(dataset_clean, centers = k, nstart = 25)
+  ss <- silhouette(km.res$cluster, dist(dataset_clean))
   mean(ss[, 3])  # Ritorna il punteggio medio silhouette
 }
 
@@ -135,5 +132,29 @@ plot(k.values, silhouette_scores, type = "b", pch = 19, frame = FALSE,
      main = "Silhouette Method for Optimal K")
 
 
-# In entrambe le analisi il numero di k ottimale è 8
+# In entrambe le analisi il numero di k ottimale è 2 o 4
 
+set.seed(123) # Per la riproducibilità 
+
+kmeans_result <- kmeans(dataset_clean, centers = 4, nstart = 25) 
+
+kmeans_result$centers
+kmeans_result$size
+kmeans_result$cluster
+
+
+# Calcola il silhouette score del clustering ottenuto
+silhouette_result <- silhouette(kmeans_result$cluster, dist(dataset_clean))
+mean(silhouette_result[, 3])  # Punteggio medio silhouette
+
+dataset_clean$Cluster <- as.factor(kmeans_result$cluster) 
+
+aggregate(dataset_clean[, c("Recency", "Frequency", "TotalSpent", "NetQuantity")], 
+          
+          by = list(Cluster = dataset_clean$Cluster), 
+          
+          mean) 
+
+summary(kmeans_result)
+summary(dataset_clean)
+head(dataset_clean)
