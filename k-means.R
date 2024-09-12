@@ -158,3 +158,38 @@ aggregate(dataset_clean[, c("Recency", "Frequency", "TotalSpent", "NetQuantity")
 summary(kmeans_result)
 summary(dataset_clean)
 head(dataset_clean)
+
+data <- dataset_clean
+library(ggplot2)
+
+# Boxplot per la variabile TotalSpent divisa per Cluster
+ggplot(data, aes(x = factor(Cluster), y = TotalSpent)) + 
+  geom_boxplot() +
+  labs(title = "Boxplot di TotalSpent per Cluster",
+       x = "Cluster",
+       y = "Total Spent") +
+  theme_minimal()
+
+# Boxplot per la variabile NetQuantity divisa per Cluster
+ggplot(data, aes(x = factor(Cluster), y = NetQuantity)) + 
+  geom_boxplot() +
+  labs(title = "Boxplot di NetQuantity per Cluster",
+       x = "Cluster",
+       y = "Net Quantity") +
+  theme_minimal()
+
+# Boxplot per la variabile Frequency divisa per Cluster
+ggplot(data, aes(x = factor(Cluster), y = Frequency)) + 
+  geom_boxplot() +
+  labs(title = "Boxplot di Frequency per Cluster",
+       x = "Cluster",
+       y = "Frequency") +
+  theme_minimal()
+
+# Boxplot per la variabile Recency divisa per Cluster
+ggplot(data, aes(x = factor(Cluster), y = Recency)) + 
+  geom_boxplot() +
+  labs(title = "Boxplot di Recency per Cluster",
+       x = "Cluster",
+       y = "Recency") +
+  theme_minimal()
