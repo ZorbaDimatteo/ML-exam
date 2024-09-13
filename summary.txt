@@ -1,0 +1,8 @@
+   Invoice           StockCode         Description           Quantity          InvoiceDate                         Price             CustomerID       Country         
+ Length:1067371     Length:1067371     Length:1067371     Min.   :-80995.00   Min.   :2009-12-01 07:45:00.00   Min.   :-53594.36   Min.   :12346    Length:1067371    
+ Class :character   Class :character   Class :character   1st Qu.:     1.00   1st Qu.:2010-07-09 09:46:00.00   1st Qu.:     1.25   1st Qu.:13975    Class :character  
+ Mode  :character   Mode  :character   Mode  :character   Median :     3.00   Median :2010-12-07 15:28:00.00   Median :     2.10   Median :15255    Mode  :character  
+                                                          Mean   :     9.94   Mean   :2011-01-02 21:13:55.39   Mean   :     4.65   Mean   :15325                      
+                                                          3rd Qu.:    10.00   3rd Qu.:2011-07-22 10:23:00.00   3rd Qu.:     4.15   3rd Qu.:16797                      
+                                                          Max.   : 80995.00   Max.   :2011-12-09 12:50:00.00   Max.   : 38970.00   Max.   :18287                      
+                                                                                                                                   NA's   :243007                     

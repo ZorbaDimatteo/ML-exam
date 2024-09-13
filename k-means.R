@@ -16,32 +16,45 @@ library(dplyr)
 
 file_path <- here("online_retail_II.xlsx")
 
-dataset <- read_excel(file_path)
+# Leggi i due fogli
+df1 <- read_excel(file_path, sheet = "Year 2009-2010")
+df2 <- read_excel(file_path, sheet = "Year 2010-2011")
 
+# Unisci i dataset
+dataset <- bind_rows(df1, df2)
+
+# Visualizza il dataset combinato
+head(dataset)
 
 dataset <- dataset %>%
   rename(CustomerID = `Customer ID`)
 
 
-# Visualizzare le prime righe del dataset
-head(dataset)
-
 # Riassumere le variabili numeriche
 summary(dataset)
+# capture.output(summary(dataset), file = "summary.txt")
 
-# # Filtra le righe con CustomerID mancante e salvale in un nuovo dataframe
-# data_missing_customer <- dataset %>%
-#   filter(is.na(CustomerID))
 
+# Contare la distribuzione dei CustomerID per ogni Country
+country_distribution <- dataset %>%
+  count(Country, name = "CustomerCount") %>%
+  arrange(desc(CustomerCount)) # ordinare in ordine decrescente di CustomerCount
+
+head(country_distribution)
+# Visualizzare la tabella
+# View(country_distribution) # Apri una finestra con la tabella (funziona in RStudio)
 dataset <- dataset %>% 
   
-  select(-StockCode, -Description) 
+  select(-StockCode, -Description, -Country) 
 
 dataset$InvoiceDate <- as.Date(dataset$InvoiceDate, format = "%Y-%m-%d")
 
+# dataset ripulito
 head(dataset)
 
+# calcolo delle feature Recensy, TotalSpent, NetQuantity, InvoiceCount
 
+# calcolo della recensy
 dataset <- dataset %>% mutate( Recency = as.numeric(difftime(max(InvoiceDate), InvoiceDate, units = "days")), )
 head(dataset)
 
@@ -52,14 +65,13 @@ dataset_clean <- dataset %>%
   group_by(CustomerID) %>% 
   
   summarise( 
-    
     TotalSpent = sum(Quantity * Price), 
-    
     NetQuantity = sum(Quantity), 
-    
     InvoiceCount = n_distinct(Invoice), 
     Recency = min(Recency, na.rm = TRUE)
-  )
+  ) %>% 
+  
+  filter(TotalSpent > 0) # filtrare clienti con spesa totale positivi
 
 summary(dataset_clean)
 head(dataset_clean)
@@ -107,16 +119,15 @@ wcss <- function(k) {
 k.values <- 1:10
 wcss_values <- sapply(k.values, wcss)
 
+png("elbow_method_chart.png", width = 800, height = 600)
 # Crea un grafico per visualizzare il gomito
 plot(k.values, wcss_values, type="b", pch = 19, frame = FALSE,
      xlab="Number of clusters K",
      ylab="Total within-clusters sum of squares (WCSS)",
      main="Elbow Method for Optimal K")
-
+dev.off()
 
 # Metodo del Silhouette Score 
-
-
 
 set.seed(123)  # Per rendere i risultati riproducibili
 
@@ -131,13 +142,13 @@ calculate_silhouette <- function(k) {
 k.values <- 2:10
 silhouette_scores <- sapply(k.values, calculate_silhouette)
 
-
+png("silhouette_method_chart.png", width = 800, height = 600)
 # Crea un grafico del Silhouette Score per ciascun valore di k
 plot(k.values, silhouette_scores, type = "b", pch = 19, frame = FALSE,
      xlab = "Number of clusters K",
      ylab = "Average Silhouette Score",
      main = "Silhouette Method for Optimal K")
-
+dev.off()
 
 # In entrambe le analisi il numero di k ottimale è 3 o 4
 
@@ -155,36 +166,39 @@ kmeans_result4 <- kmeans(data_normalized, centers = 4, nstart = 25)
 silhouette_result4 <- silhouette(kmeans_result4$cluster, dist(data_normalized))
 mean(silhouette_result4[, 3])  # Punteggio medio silhouette
 
-# il silhouette score è migliore per k = 4
+# il silhouette score è migliore per k = 3
 
-kmeans_result4$centers
-kmeans_result4$size
-kmeans_result4$cluster
+kmeans_result3$centers
+kmeans_result3$size
+kmeans_result3$cluster
 
-dataset_clean$Cluster <- as.factor(kmeans_result4$cluster) 
+dataset_clean$Cluster <- as.factor(kmeans_result3$cluster) 
 
-summary(kmeans_result4)
+summary(kmeans_result3)
 summary(dataset_clean)
 head(dataset_clean)
 
 data <- dataset_clean
 library(ggplot2)
 
+
 # Boxplot per la variabile TotalSpent divisa per Cluster
 ggplot(data, aes(x = factor(Cluster), y = TotalSpent)) + 
   geom_boxplot() +
-  labs(title = "Boxplot di TotalSpent per Cluster",
+  labs(title = "Boxplot of TotalSpent for Cluster",
        x = "Cluster",
-       y = "Total Spent") +
+       y = "Total Spent in pounds") +
   theme_minimal()
 
 # Boxplot per la variabile NetQuantity divisa per Cluster
+
 ggplot(data, aes(x = factor(Cluster), y = NetQuantity)) + 
   geom_boxplot() +
   labs(title = "Boxplot di NetQuantity per Cluster",
        x = "Cluster",
        y = "Net Quantity") +
   theme_minimal()
+
 
 # Boxplot per la variabile InvoiceCount divisa per Cluster
 ggplot(data, aes(x = factor(Cluster), y = InvoiceCount)) + 
