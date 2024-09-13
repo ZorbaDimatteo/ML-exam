@@ -18,40 +18,33 @@ file_path <- here("online_retail_II.xlsx")
 
 dataset <- read_excel(file_path)
 
-# Visualizza i nomi delle colonne prima della modifica
-colnames(dataset)
 
 # Rinomina una colonna (es. rinominare 'old_name' in 'new_name')
 dataset <- dataset %>%
   rename(CustomerID = `Customer ID`)
 
-# Verifica i nuovi nomi delle colonne
-colnames(dataset)
-
 
 # Visualizzare le prime righe del dataset
 head(dataset)
 
-
-# Visualizzare la struttura del dataset
-str(dataset)
-
 # Riassumere le variabili numeriche
 summary(dataset)
 
-# Filtra le righe con CustomerID mancante e salvale in un nuovo dataframe
-data_missing_customer <- dataset %>%
-  filter(is.na(CustomerID))
+# # Filtra le righe con CustomerID mancante e salvale in un nuovo dataframe
+# data_missing_customer <- dataset %>%
+#   filter(is.na(CustomerID))
 
 dataset <- dataset %>% 
   
-  select(-Invoice, -StockCode, -Description) 
+  select(-StockCode, -Description) 
 
-# Verifica la nuova struttura
+dataset$InvoiceDate <- as.Date(dataset$InvoiceDate, format = "%Y-%m-%d")
 
-head(data_missing_customer)
+head(dataset)
 
-# Calcolare il totale netto per ogni cliente 
+
+dataset <- dataset %>% mutate( Recency = as.numeric(difftime(max(InvoiceDate), InvoiceDate, units = "days")), )
+head(dataset)
 
 dataset_clean <- dataset %>% 
   
@@ -65,23 +58,19 @@ dataset_clean <- dataset %>%
     
     NetQuantity = sum(Quantity), 
     
-    Frequency = n(), 
-    
-    Recency = as.numeric(difftime(Sys.Date(), max(InvoiceDate), units = "days")), 
-    
+    InvoiceCount = n_distinct(Invoice), 
+    Recency = min(Recency, na.rm = TRUE)
   )
 
-#%>% 
-  
-# filter(NetQuantity > 0)  # Opzionale: filtrare clienti con acquisti netti positivi 
-
-head(dataset)
-summary(dataset)
 summary(dataset_clean)
 head(dataset_clean)
 
+#rimozione degli outlier prima della normalizzazione
+# spiegare lo step sul documento
+
+
 # normalizzazione
-data_normalized <- scale(dataset_clean[, c("Recency", "Frequency", "TotalSpent", "NetQuantity")]) 
+data_normalized <- scale(dataset_clean[, c("Recency","TotalSpent", "NetQuantity", "InvoiceCount")]) 
 
 head(data_normalized)
 
@@ -93,7 +82,7 @@ set.seed(123)  # Per rendere i risultati riproducibili
 
 # Esegui k-means per un range di cluster (ad esempio da 1 a 10 cluster)
 wcss <- function(k) {
-  kmeans(dataset_clean, k, nstart = 25)$tot.withinss
+  kmeans(data_normalized, k, nstart = 25)$tot.withinss
 }
 
 # Calcola WCSS per ciascun valore di k
@@ -115,8 +104,8 @@ set.seed(123)  # Per rendere i risultati riproducibili
 
 # Funzione per calcolare il Silhouette Score per ogni numero di cluster
 calculate_silhouette <- function(k) {
-  km.res <- kmeans(dataset_clean, centers = k, nstart = 25)
-  ss <- silhouette(km.res$cluster, dist(dataset_clean))
+  km.res <- kmeans(data_normalized, centers = k, nstart = 25)
+  ss <- silhouette(km.res$cluster, dist(data_normalized))
   mean(ss[, 3])  # Ritorna il punteggio medio silhouette
 }
 
@@ -132,30 +121,37 @@ plot(k.values, silhouette_scores, type = "b", pch = 19, frame = FALSE,
      main = "Silhouette Method for Optimal K")
 
 
-# In entrambe le analisi il numero di k ottimale è 2 o 4
+# In entrambe le analisi il numero di k ottimale è 3 o 4
 
 set.seed(123) # Per la riproducibilità 
 
-kmeans_result <- kmeans(dataset_clean, centers = 4, nstart = 25) 
+# Calcola il silhouette score per k = 3 e k = 4
+kmeans_result3 <- kmeans(data_normalized, centers = 3, nstart = 25) 
 
-kmeans_result$centers
-kmeans_result$size
-kmeans_result$cluster
+silhouette_result3 <- silhouette(kmeans_result3$cluster, dist(data_normalized))
+mean(silhouette_result3[, 3])  # Punteggio medio silhouette
 
+# Calcola il silhouette score per k = 3 e k = 4
+kmeans_result4 <- kmeans(data_normalized, centers = 4, nstart = 25) 
 
-# Calcola il silhouette score del clustering ottenuto
-silhouette_result <- silhouette(kmeans_result$cluster, dist(dataset_clean))
-mean(silhouette_result[, 3])  # Punteggio medio silhouette
+silhouette_result4 <- silhouette(kmeans_result4$cluster, dist(data_normalized))
+mean(silhouette_result4[, 3])  # Punteggio medio silhouette
 
-dataset_clean$Cluster <- as.factor(kmeans_result$cluster) 
+# il silhouette score è migliore per k = 4
 
-aggregate(dataset_clean[, c("Recency", "Frequency", "TotalSpent", "NetQuantity")], 
-          
-          by = list(Cluster = dataset_clean$Cluster), 
-          
-          mean) 
+kmeans_result4$centers
+kmeans_result4$size
+kmeans_result4$cluster
 
-summary(kmeans_result)
+dataset_clean$Cluster <- as.factor(kmeans_result4$cluster) 
+
+# aggregate(dataset_clean[, c("Recency", "Frequency", "TotalSpent", "NetQuantity")], 
+#           
+#           by = list(Cluster = dataset_clean$Cluster), 
+#           
+#           mean) 
+
+summary(kmeans_result4)
 summary(dataset_clean)
 head(dataset_clean)
 
@@ -178,12 +174,12 @@ ggplot(data, aes(x = factor(Cluster), y = NetQuantity)) +
        y = "Net Quantity") +
   theme_minimal()
 
-# Boxplot per la variabile Frequency divisa per Cluster
-ggplot(data, aes(x = factor(Cluster), y = Frequency)) + 
+# Boxplot per la variabile InvoiceCount divisa per Cluster
+ggplot(data, aes(x = factor(Cluster), y = InvoiceCount)) + 
   geom_boxplot() +
-  labs(title = "Boxplot di Frequency per Cluster",
+  labs(title = "Boxplot di InvoiceCount per Cluster",
        x = "Cluster",
-       y = "Frequency") +
+       y = "InvoiceCount") +
   theme_minimal()
 
 # Boxplot per la variabile Recency divisa per Cluster
@@ -193,3 +189,4 @@ ggplot(data, aes(x = factor(Cluster), y = Recency)) +
        x = "Cluster",
        y = "Recency") +
   theme_minimal()
+
