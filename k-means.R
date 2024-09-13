@@ -19,7 +19,6 @@ file_path <- here("online_retail_II.xlsx")
 dataset <- read_excel(file_path)
 
 
-# Rinomina una colonna (es. rinominare 'old_name' in 'new_name')
 dataset <- dataset %>%
   rename(CustomerID = `Customer ID`)
 
@@ -68,7 +67,26 @@ head(dataset_clean)
 #rimozione degli outlier prima della normalizzazione
 # spiegare lo step sul documento
 
+# Calcolare il primo e il terzo quartile di TotalSpent
+Q1 <- quantile(dataset_clean$TotalSpent, 0.25, na.rm = TRUE)
+Q3 <- quantile(dataset_clean$TotalSpent, 0.75, na.rm = TRUE)
+IQR_value <- Q3 - Q1
 
+# Definire i limiti oltre i quali considerare i valori come outliers
+lower_bound <- Q1 - 1.5 * IQR_value
+upper_bound <- Q3 + 1.5 * IQR_value
+
+# Visualizzare i limiti
+cat("Lower bound:", lower_bound, "\n")
+cat("Upper bound:", upper_bound, "\n")
+
+# Filtrare il dataset per rimuovere gli outliers di TotalSpent
+dataset_clean <- dataset_clean %>%
+  filter(TotalSpent >= lower_bound & TotalSpent <= upper_bound)
+
+# Visualizzare il dataset senza outliers
+head(dataset_clean)
+summary(dataset_clean)
 # normalizzazione
 data_normalized <- scale(dataset_clean[, c("Recency","TotalSpent", "NetQuantity", "InvoiceCount")]) 
 
@@ -144,12 +162,6 @@ kmeans_result4$size
 kmeans_result4$cluster
 
 dataset_clean$Cluster <- as.factor(kmeans_result4$cluster) 
-
-# aggregate(dataset_clean[, c("Recency", "Frequency", "TotalSpent", "NetQuantity")], 
-#           
-#           by = list(Cluster = dataset_clean$Cluster), 
-#           
-#           mean) 
 
 summary(kmeans_result4)
 summary(dataset_clean)
