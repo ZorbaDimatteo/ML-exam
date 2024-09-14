@@ -155,20 +155,22 @@ plot(k.values, silhouette_scores, type = "b", pch = 19, frame = FALSE,
      ylab = "Average Silhouette Score",
      main = "Silhouette Method for Optimal K")
 
-# In entrambe le analisi il numero di k ottimale è 3 o 4
+# In entrambe le analisi il numero di k ottimale sembra compreso tra 2 e 5
+
+# Ciclo per calcolare il silhouette score per k da 2 a 5
+for (k in 2:5) {
+  kmeans_result <- kmeans(data_normalized, centers = k, nstart = 25)
+  
+  silhouette_result <- silhouette(kmeans_result$cluster, dist(data_normalized))
+  
+  silhouette_score <- mean(silhouette_result[, 3])  # Punteggio medio silhouette
+  
+  cat("Silhouette score per k =", k, ":", silhouette_score, "\n")
+}
 
 
 # Calcola il silhouette score per k = 3 
 kmeans_result3 <- kmeans(data_normalized, centers = 3, nstart = 25) 
-
-silhouette_result3 <- silhouette(kmeans_result3$cluster, dist(data_normalized))
-mean(silhouette_result3[, 3])  # Punteggio medio silhouette
-
-# Calcola il silhouette score per k = 4
-kmeans_result4 <- kmeans(data_normalized, centers = 4, nstart = 25) 
-
-silhouette_result4 <- silhouette(kmeans_result4$cluster, dist(data_normalized))
-mean(silhouette_result4[, 3])  # Punteggio medio silhouette
 
 # il silhouette score è migliore per k = 3
 
