@@ -40,9 +40,20 @@ country_distribution <- dataset %>%
   count(Country, name = "CustomerCount") %>%
   arrange(desc(CustomerCount)) # ordinare in ordine decrescente di CustomerCount
 
-head(country_distribution)
-# Visualizzare la tabella
-# View(country_distribution) # Apri una finestra con la tabella (funziona in RStudio)
+# Visualizzare la distribuzione per country
+# Filtrare solo i paesi con CustomerCount > 1000
+filtered_distribution <- country_distribution %>%
+  filter(CustomerCount > 1000)
+
+# Creare il grafico a barre
+ggplot(filtered_distribution, aes(x = reorder(Country, -CustomerCount), y = CustomerCount)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Distribuzione dei clienti per Paese (CustomerCount > 1000)",
+       x = "Paese",
+       y = "Numero di Clienti") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 dataset <- dataset %>% 
   
   select(-StockCode, -Description, -Country) 
