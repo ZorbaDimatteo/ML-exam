@@ -37,18 +37,19 @@ summary(dataset)
 
 # Contare la distribuzione dei CustomerID per ogni Country
 country_distribution <- dataset %>%
-  count(Country, name = "CustomerCount") %>%
+  group_by(Country) %>%
+  summarise(CustomerCount = n_distinct(CustomerID)) %>%
   arrange(desc(CustomerCount)) # ordinare in ordine decrescente di CustomerCount
 
 # Visualizzare la distribuzione per country
 # Filtrare solo i paesi con CustomerCount > 1000
 filtered_distribution <- country_distribution %>%
-  filter(CustomerCount > 1000)
+  filter(CustomerCount > 10)
 
 # Creare il grafico a barre
 ggplot(filtered_distribution, aes(x = reorder(Country, -CustomerCount), y = CustomerCount)) +
   geom_bar(stat = "identity", fill = "steelblue") +
-  labs(title = "Distribuzione dei clienti per Paese (CustomerCount > 1000)",
+  labs(title = "Distribuzione dei clienti per Paese (CustomerCount > 10)",
        x = "Paese",
        y = "Numero di Clienti") +
   theme_minimal() +
@@ -119,8 +120,6 @@ head(data_normalized)
 
 ## elbow method
 
-set.seed(123)  # Per rendere i risultati riproducibili
-
 # Esegui k-means per un range di cluster (ad esempio da 1 a 10 cluster)
 wcss <- function(k) {
   kmeans(data_normalized, k, nstart = 25)$tot.withinss
@@ -130,17 +129,14 @@ wcss <- function(k) {
 k.values <- 1:10
 wcss_values <- sapply(k.values, wcss)
 
-png("elbow_method_chart.png", width = 800, height = 600)
 # Crea un grafico per visualizzare il gomito
 plot(k.values, wcss_values, type="b", pch = 19, frame = FALSE,
      xlab="Number of clusters K",
      ylab="Total within-clusters sum of squares (WCSS)",
      main="Elbow Method for Optimal K")
-dev.off()
 
 # Metodo del Silhouette Score 
 
-set.seed(123)  # Per rendere i risultati riproducibili
 
 # Funzione per calcolare il Silhouette Score per ogni numero di cluster
 calculate_silhouette <- function(k) {
@@ -153,25 +149,22 @@ calculate_silhouette <- function(k) {
 k.values <- 2:10
 silhouette_scores <- sapply(k.values, calculate_silhouette)
 
-png("silhouette_method_chart.png", width = 800, height = 600)
 # Crea un grafico del Silhouette Score per ciascun valore di k
 plot(k.values, silhouette_scores, type = "b", pch = 19, frame = FALSE,
      xlab = "Number of clusters K",
      ylab = "Average Silhouette Score",
      main = "Silhouette Method for Optimal K")
-dev.off()
 
 # In entrambe le analisi il numero di k ottimale è 3 o 4
 
-set.seed(123) # Per la riproducibilità 
 
-# Calcola il silhouette score per k = 3 e k = 4
+# Calcola il silhouette score per k = 3 
 kmeans_result3 <- kmeans(data_normalized, centers = 3, nstart = 25) 
 
 silhouette_result3 <- silhouette(kmeans_result3$cluster, dist(data_normalized))
 mean(silhouette_result3[, 3])  # Punteggio medio silhouette
 
-# Calcola il silhouette score per k = 3 e k = 4
+# Calcola il silhouette score per k = 4
 kmeans_result4 <- kmeans(data_normalized, centers = 4, nstart = 25) 
 
 silhouette_result4 <- silhouette(kmeans_result4$cluster, dist(data_normalized))
@@ -190,8 +183,6 @@ summary(dataset_clean)
 head(dataset_clean)
 
 data <- dataset_clean
-library(ggplot2)
-
 
 # Boxplot per la variabile TotalSpent divisa per Cluster
 ggplot(data, aes(x = factor(Cluster), y = TotalSpent)) + 
